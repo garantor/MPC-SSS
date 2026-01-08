@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSigner } from './hooks/useSigner';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface HomeScreenProps {
   onLoginSuccess: (address: string) => void;
@@ -37,14 +38,6 @@ function HomeScreen({ onLoginSuccess }: HomeScreenProps) {
       </p>
 
       <div className="button-group">
-        {/* <button
-          className="btn-primary"
-          onClick={handleLogin}
-          disabled={loading}
-        >
-        
-        </button> */}
-
         <button
           className="btn-primary"
           onClick={handleLogin}
@@ -78,7 +71,24 @@ function DashboardScreen({ address, onDisconnect }: DashboardProps) {
       <h1>Dashboard</h1>
       <p>Welcome back to your secure dashboard.</p>
 
-      <span className="label">Your Blockchain Address</span>
+      <div className="qr-container">
+        <QRCodeSVG
+          value={address}
+          size={160}
+          level={"H"}
+          includeMargin={false}
+          imageSettings={{
+            src: "/vite.svg",
+            x: undefined,
+            y: undefined,
+            height: 24,
+            width: 24,
+            excavate: true,
+          }}
+        />
+      </div>
+
+      <span className="label">Your EVM Blockchain Address</span>
       <div className="address-box" onClick={copyToClipboard} title="Click to copy">
         {address}
         {copied && (
@@ -110,7 +120,10 @@ function DashboardScreen({ address, onDisconnect }: DashboardProps) {
 }
 
 export default function App() {
-  const [userAddress, setUserAddress] = useState<string | null>(null);
+  const [userAddress, setUserAddress] = useState<string | null>(() => {
+    return localStorage.getItem('userAddress');
+  });
+
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('theme') as 'light' | 'dark') || 'dark';
   });
@@ -119,6 +132,16 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  const handleLoginSuccess = (address: string) => {
+    setUserAddress(address);
+    localStorage.setItem('userAddress', address);
+  };
+
+  const handleDisconnect = () => {
+    setUserAddress(null);
+    localStorage.removeItem('userAddress');
+  };
 
   const toggleTheme = () => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
@@ -131,9 +154,9 @@ export default function App() {
       </button>
 
       {!userAddress ? (
-        <HomeScreen onLoginSuccess={(addr) => setUserAddress(addr)} />
+        <HomeScreen onLoginSuccess={handleLoginSuccess} />
       ) : (
-        <DashboardScreen address={userAddress} onDisconnect={() => setUserAddress(null)} />
+        <DashboardScreen address={userAddress} onDisconnect={handleDisconnect} />
       )}
     </div>
   );
