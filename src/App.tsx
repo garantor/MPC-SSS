@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSigner } from './hooks/useSigner';
 
 interface HomeScreenProps {
@@ -80,7 +80,7 @@ function DashboardScreen({ address, onDisconnect }: DashboardProps) {
             position: 'absolute',
             top: '-30px',
             right: '0',
-            background: '#6366f1',
+            background: 'var(--primary)',
             color: 'white',
             padding: '4px 8px',
             borderRadius: '4px',
@@ -105,9 +105,25 @@ function DashboardScreen({ address, onDisconnect }: DashboardProps) {
 
 export default function App() {
   const [userAddress, setUserAddress] = useState<string | null>(null);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('theme') as 'light' | 'dark') || 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
 
   return (
     <div className="app-container">
+      <button className="theme-toggle" onClick={toggleTheme} title="Toggle Theme">
+        {theme === 'light' ? '🌙' : '☀️'}
+      </button>
+
       {!userAddress ? (
         <HomeScreen onLoginSuccess={(addr) => setUserAddress(addr)} />
       ) : (
