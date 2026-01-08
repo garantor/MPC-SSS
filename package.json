@@ -3,20 +3,29 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "expo": "~54.0.30",
-    "expo-status-bar": "~3.0.9",
+    "@metamask/smart-accounts-kit": "^0.3.0",
+    "ethers": "^6.16.0",
+    "ox": "^0.10.2",
     "react": "19.1.0",
-    "react-native": "0.81.5"
+    "react-dom": "19.1.0",
+    "shamir-secret-sharing": "^0.0.4",
+    "viem": "^2.42.1"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
-    "typescript": "~5.9.2"
+    "@types/react-dom": "~19.1.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "~5.9.2",
+    "vite": "^6.0.7"
   },
-  "private": true
+  "private": true,
+  "resolutions": {
+    "ox": "0.11.1",
+    "@noble/hashes": "^1.4.0"
+  }
 }
