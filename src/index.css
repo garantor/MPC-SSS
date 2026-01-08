@@ -23,7 +23,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-image: 
+  background-image:
     radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
     radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.15) 0px, transparent 50%);
 }
@@ -47,8 +47,15 @@ body {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 h1 {
@@ -109,4 +116,63 @@ button {
 .btn-outline:hover {
   background-color: rgba(255, 255, 255, 0.05);
   border-color: var(--text-dim);
+}
+
+.address-box {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 24px 0;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
+  color: #6ee7b7;
+  word-break: break-all;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.address-box:hover {
+  background: rgba(0, 0, 0, 0.4);
+  border-color: #6366f1;
+}
+
+.label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(110, 231, 183, 0.1);
+  color: #6ee7b7;
+  border: 1px solid rgba(110, 231, 183, 0.2);
+  margin-bottom: 16px;
+}
+
+.btn-disconnect {
+  margin-top: 24px;
+  background-color: transparent;
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.btn-disconnect:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+}
+
+.success-icon {
+  font-size: 3rem;
+  color: #6ee7b7;
+  margin-bottom: 16px;
 }
