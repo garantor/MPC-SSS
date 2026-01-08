@@ -28,23 +28,29 @@ function HomeScreen({ onLoginSuccess }: HomeScreenProps) {
   return (
     <div className="card">
       <h1>Welcome</h1>
-      <p>Securely access your MPC wallet</p>
+      <p>
+        Experience secure MPC technology with Passkey-authenticated trial wallets.
+        <br />
+        <span style={{ color: '#ef4444', fontWeight: '600', display: 'block', marginTop: '12px' }}>
+          ⚠️ Warning: These are throwaway wallets for demo purposes. Do not use for real assets.
+        </span>
+      </p>
 
       <div className="button-group">
+        {/* <button
+          className="btn-primary"
+          onClick={handleLogin}
+          disabled={loading}
+        >
+        
+        </button> */}
+
         <button
           className="btn-primary"
           onClick={handleLogin}
           disabled={loading}
         >
-          {loading ? 'CONNECTING...' : 'LOGIN WITH PASSKEY'}
-        </button>
-
-        <button
-          className="btn-outline"
-          onClick={() => console.log('Signup Pressed')}
-          disabled={loading}
-        >
-          SIGNUP
+          {loading ? 'CONNECTING...' : 'SIGNUP WITH PASSKEY'}
         </button>
       </div>
     </div>
