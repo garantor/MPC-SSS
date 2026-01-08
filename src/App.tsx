@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { formatEther } from 'viem';
 import { useSigner } from './hooks/useSigner';
 import { QRCodeSVG } from 'qrcode.react';
+import { useTransactions } from './hooks/useTransactions';
 
 interface HomeScreenProps {
   onLoginSuccess: (address: string) => void;
@@ -57,6 +59,26 @@ interface DashboardProps {
 
 function DashboardScreen({ address, onDisconnect }: DashboardProps) {
   const [copied, setCopied] = useState(false);
+  const [balance, setBalance] = useState<string>('0.00');
+  const [isLoadingBalance, setIsLoadingBalance] = useState(true);
+
+  const { getBalance } = useTransactions(address as `0x${string}`);
+
+  const fetchBalance = async () => {
+    setIsLoadingBalance(true);
+    try {
+      const balanceWei = await getBalance();
+      setBalance(formatEther(balanceWei));
+    } catch (error) {
+      console.error('Error fetching balance:', error);
+    } finally {
+      setIsLoadingBalance(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBalance();
+  }, [address]);
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(address);
@@ -68,13 +90,23 @@ function DashboardScreen({ address, onDisconnect }: DashboardProps) {
     <div className="card">
       <div className="success-icon">✓</div>
       <div className="badge">VERIFIED ACCOUNT</div>
-      <h1>Dashboard</h1>
-      <p>Welcome back to your secure dashboard.</p>
+
+      <div className="balance-section">
+        <span className="label">Available Balance</span>
+        {isLoadingBalance ? (
+          <div className="loading-skeleton"></div>
+        ) : (
+          <div className="balance-amount">
+            {parseFloat(balance).toFixed(4)} <span className="balance-unit">ETH</span>
+            <span className="refresh-icon" onClick={fetchBalance} title="Refresh Balance">🔄</span>
+          </div>
+        )}
+      </div>
 
       <div className="qr-container">
         <QRCodeSVG
           value={address}
-          size={160}
+          size={140}
           level={"H"}
           includeMargin={false}
           imageSettings={{

@@ -12,9 +12,9 @@ import { createBundlerClient, type CreateWebAuthnCredentialReturnType } from 'vi
 import { mnemonicToAccount, privateKeyToAccount, generateMnemonic, english } from 'viem/accounts';
 import { Implementation, toMetaMaskSmartAccount } from '@metamask/smart-accounts-kit';
 import { Address, PublicKey, AesGcm, Hex, WebAuthnP256 } from 'ox';
-import { getClientInternal } from "../utils";
 import { combine, split } from "shamir-secret-sharing";
 import { bytesToHex, bytesToString } from "viem";
+import { useEvmClient } from "./useClient";
 
 
 
@@ -32,6 +32,7 @@ export function useSigner() {
     async function getSigner() {
 
         let userMnemonic = generateMnemonic(english, 128);
+        const { getClient } = useEvmClient();
         console.log("Generated Mnemonic:", userMnemonic);
         let bufferType = stringToBytes(userMnemonic);
         console.log("Encoded Mnemonic to Buffer:", bufferType);
@@ -106,7 +107,7 @@ export function useSigner() {
         console.log("Derived Owner Account from Mnemonic:", owner);
 
         const smartAccount = await toMetaMaskSmartAccount({
-            client: await getClientInternal(),
+            client: await getClient(),
             implementation: Implementation.Hybrid,
             deployParams: [owner.address, [], [], []],
             deploySalt: "0x",
