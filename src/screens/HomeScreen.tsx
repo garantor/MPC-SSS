@@ -11,6 +11,11 @@ export function HomeScreen({ onLoginSuccess }: HomeScreenProps) {
     const [loginLoading, setLoginLoading] = useState(false);
 
     async function handlePasskeyLogin() {
+        // LOGIN FLOW
+        // 1. Passkey login
+        // 2. Retrieve encrypted and backend shares from backend, decrypt with passkey share
+        // 3. reconstruct mnemonic and wallet
+        // 4. return user address 
         console.log('Passkey Login Pressed');
         setLoginLoading(true);
         try {
@@ -25,7 +30,11 @@ export function HomeScreen({ onLoginSuccess }: HomeScreenProps) {
         }
     }
 
-    async function handleLogin() {
+    async function passkeySignup() {
+        // SIGNUP FLOW
+        // 1. Passkey signup
+        // 2. Generate mnemonic and shares
+        // 3. encrypt share, store shares - localShare encrypted with passkey, cloudShare in cloud, backendShare in backend. Passkey encrypted share should be store on the backend alongside the WebAuthn Credential for retrieval during login.
         console.log('Signup Pressed');
         setLoading(true);
         try {
@@ -55,7 +64,7 @@ export function HomeScreen({ onLoginSuccess }: HomeScreenProps) {
             <div className="button-group">
                 <button
                     className="btn-primary"
-                    onClick={handleLogin}
+                    onClick={passkeySignup}
                     disabled={loading || loginLoading}
                 >
                     {loading ? 'CONNECTING...' : 'SIGNUP WITH PASSKEY'}
