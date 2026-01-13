@@ -15,7 +15,14 @@ export function DashboardScreen({ address, onDisconnect }: DashboardProps) {
     const [balance, setBalance] = useState<string>('0.00');
     const [isLoadingBalance, setIsLoadingBalance] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isRecovering, setIsRecovering] = useState(false);
+    const [recoveredMnemonic, setRecoveredMnemonic] = useState<string | null>(null);
     const { retrievePasskeyShare } = useSigner();
+
+    const handleRecoverySuccess = (mnemonic: string) => {
+        setRecoveredMnemonic(mnemonic);
+        setIsRecovering(false);
+    };
 
     const { getBalance } = useTransactions(address as `0x${string}`);
 
@@ -40,6 +47,16 @@ export function DashboardScreen({ address, onDisconnect }: DashboardProps) {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
+
+    const toggleTheme = (e: React.MouseEvent) => {
+        // ... handled in App.tsx
+    };
+
+    if (isRecovering) {
+        // App.tsx handles the overlay or screen swap, but we can also do it here if passed as prop
+        // However, user said "dashboard should contain the button to trigger recovery"
+        // Let's assume we show the RecoveryScreen within the Dashboard or tell App to show it.
+    }
 
     return (
         <div className="card">
@@ -95,10 +112,21 @@ export function DashboardScreen({ address, onDisconnect }: DashboardProps) {
             </div>
 
             <div className="button-group">
-                {/* <button className="btn-primary" onClick={async () => await retrievePasskeyShare()}> */}
-                    <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
+                <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
                     SEND ASSETS
                 </button>
+
+                <button
+                    className="btn-outline"
+                    style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}
+                    onClick={() => {
+                        // Notify parent to show recovery screen
+                        (window as any).dispatchEvent(new CustomEvent('trigger-recovery'));
+                    }}
+                >
+                    RESTORE FROM CLOUD
+                </button>
+
                 <button className="btn-outline btn-disconnect" onClick={onDisconnect}>
                     DISCONNECT
                 </button>

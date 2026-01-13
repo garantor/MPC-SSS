@@ -46,7 +46,7 @@ export function useSigner() {
 
         const { getClient } = useEvmClient();
 
-     
+
         const credential: any = await window.navigator.credentials.create(
             {
                 publicKey: {
@@ -114,7 +114,7 @@ export function useSigner() {
 
         const owner = mnemonicToAccount(userMnemonic, {
             accountIndex: 0,
-        }) 
+        })
 
         // by default this will generate an evm account
         //same mnemonic can be used to generate other types of accounts as well
@@ -176,7 +176,7 @@ export function useSigner() {
 
 
 
-        
+
 
         localStorage.setItem('passkeyEncryptedShare', JSON.stringify(encryptedShare));
         return shareHex as string; // not really needed
@@ -264,7 +264,24 @@ export function useSigner() {
             hexToBytes(localStorage.getItem('backendShare') as `0x${string}`),
         ]);
         console.log("Recovered Share from Local and Backend Shares:", bytesToString(recoveredShare));
-    
+
+        return recoveredMnemonic;
+    }
+
+    async function recoverWallet(cloudShareHex: string) {
+        console.log("Recovering wallet with cloud share...");
+        const backendShareHex = localStorage.getItem('backendShare');
+        if (!backendShareHex) {
+            throw new Error("Backend share not found");
+        }
+
+        const mnemonicBytes = await combine([
+            hexToBytes(cloudShareHex as `0x${string}`),
+            hexToBytes(backendShareHex as `0x${string}`),
+        ]);
+
+        const recoveredMnemonic = bytesToString(mnemonicBytes);
+        console.log("Recovered Mnemonic from Cloud and Backend Shares:", recoveredMnemonic);
         return recoveredMnemonic;
     }
 
@@ -273,5 +290,6 @@ export function useSigner() {
         encryptShareWithPasskey,
         retrieveLocalShare,
         retrievePasskeyShare,
+        recoverWallet,
     };
 }

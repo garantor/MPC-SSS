@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { HomeScreen } from './screens/HomeScreen';
 import { EncryptionScreen } from './screens/EncryptionScreen';
 import { CloudBackupScreen } from './screens/CloudBackupScreen';
+import { RecoveryScreen } from './screens/RecoveryScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { encryptData, decryptData } from '../encryptions';
 
@@ -16,6 +17,13 @@ export default function App() {
   const [isCloudBackedUp, setIsCloudBackedUp] = useState<boolean>(() => {
     return localStorage.getItem('isCloudBackedUp') === 'true';
   });
+  const [showRecovery, setShowRecovery] = useState(false);
+
+  useEffect(() => {
+    const handleTriggerRecovery = () => setShowRecovery(true);
+    window.addEventListener('trigger-recovery', handleTriggerRecovery);
+    return () => window.removeEventListener('trigger-recovery', handleTriggerRecovery);
+  }, []);
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('theme') as 'light' | 'dark') || 'dark';
@@ -46,6 +54,13 @@ export default function App() {
     setIsCloudBackedUp(true);
   };
 
+  const handleRecoveryComplete = (mnemonic: string) => {
+    console.log("Recovery successful! Wallet Mnemonic:", mnemonic);
+    setShowRecovery(false);
+    setIsCloudBackedUp(true); // Ensure state is synced
+    alert("Wallet successfully recovered! Check console for mnemonic.");
+  };
+
   const handleDisconnect = () => {
     setUserAddress(null);
     setShareToEncrypt(null);
@@ -73,6 +88,13 @@ export default function App() {
 
     if (isEncrypted && !isCloudBackedUp) {
       return <CloudBackupScreen onBackupComplete={handleBackupComplete} />;
+    }
+
+    if (showRecovery) {
+      return <RecoveryScreen
+        onRecoveryComplete={handleRecoveryComplete}
+        onCancel={() => setShowRecovery(false)}
+      />;
     }
 
     return <DashboardScreen address={userAddress} onDisconnect={handleDisconnect} />;
