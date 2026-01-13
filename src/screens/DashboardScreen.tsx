@@ -95,8 +95,8 @@ export function DashboardScreen({ address, onDisconnect }: DashboardProps) {
             </div>
 
             <div className="button-group">
-                <button className="btn-primary" onClick={async () => await retrievePasskeyShare()}>
-                    {/* <button className="btn-primary" onClick={() => setIsModalOpen(true)}> */}
+                {/* <button className="btn-primary" onClick={async () => await retrievePasskeyShare()}> */}
+                    <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
                     SEND ASSETS
                 </button>
                 <button className="btn-outline btn-disconnect" onClick={onDisconnect}>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { HomeScreen } from './screens/HomeScreen';
 import { EncryptionScreen } from './screens/EncryptionScreen';
+import { CloudBackupScreen } from './screens/CloudBackupScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { encryptData, decryptData } from '../encryptions';
 
@@ -11,6 +12,9 @@ export default function App() {
   const [shareToEncrypt, setShareToEncrypt] = useState<string | null>(null);
   const [isEncrypted, setIsEncrypted] = useState<boolean>(() => {
     return !!localStorage.getItem('passkeyEncryptedShare');
+  });
+  const [isCloudBackedUp, setIsCloudBackedUp] = useState<boolean>(() => {
+    return localStorage.getItem('isCloudBackedUp') === 'true';
   });
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -25,15 +29,21 @@ export default function App() {
   const handleLoginSuccess = (address: string, share?: string) => {
     setUserAddress(address);
     localStorage.setItem('userAddress', address);
-    console.log("User logged in with address:", address, share );
+    console.log("User logged in with address:", address, share);
     if (share) {
       setShareToEncrypt(share);
     }
   };
 
   const handleEncryptionComplete = () => {
-    setShareToEncrypt(null);
+    // We don't clear shareToEncrypt yet because we might need it? 
+    // Actually shareToEncrypt is the passkey share. cloudShare is already in localStorage.
     setIsEncrypted(true);
+  };
+
+  const handleBackupComplete = () => {
+    setShareToEncrypt(null);
+    setIsCloudBackedUp(true);
   };
 
   const handleDisconnect = () => {
@@ -43,8 +53,9 @@ export default function App() {
     localStorage.removeItem('userAddress');
     localStorage.removeItem('passkeyEncryptedShare');
     localStorage.removeItem('webAuthnCredentialId');
-    localStorage.removeItem('localShare');
-    
+    localStorage.removeItem('cloudShare');
+    localStorage.removeItem('isCloudBackedUp');
+    setIsCloudBackedUp(false);
   };
 
   const toggleTheme = () => {
@@ -58,6 +69,10 @@ export default function App() {
 
     if (shareToEncrypt && !isEncrypted) {
       return <EncryptionScreen share={shareToEncrypt} onEncryptionComplete={handleEncryptionComplete} />;
+    }
+
+    if (isEncrypted && !isCloudBackedUp) {
+      return <CloudBackupScreen onBackupComplete={handleBackupComplete} />;
     }
 
     return <DashboardScreen address={userAddress} onDisconnect={handleDisconnect} />;

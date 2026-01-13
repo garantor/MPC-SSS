@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@metamask/smart-accounts-kit": "^0.3.0",
+    "@react-oauth/google": "^0.13.4",
     "ethers": "^6.16.0",
     "ox": "^0.10.2",
     "qrcode.react": "^4.2.0",

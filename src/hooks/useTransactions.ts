@@ -26,6 +26,7 @@ export function useTransactions(userAddress: Address) {
         // we need to reconstruct the signer account here using the shares and webauthn
 
         let localShare = await retrieveLocalShare();
+        console.log("Retrieved local share for transaction:", localShare);
 
 
         let bundler = await transactionBundler();
