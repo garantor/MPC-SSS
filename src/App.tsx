@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { HomeScreen } from './screens/HomeScreen';
 import { EncryptionScreen } from './screens/EncryptionScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
+import { encryptData, decryptData } from '../encryptions';
 
 export default function App() {
   const [userAddress, setUserAddress] = useState<string | null>(() => {
@@ -24,6 +25,7 @@ export default function App() {
   const handleLoginSuccess = (address: string, share?: string) => {
     setUserAddress(address);
     localStorage.setItem('userAddress', address);
+    console.log("User logged in with address:", address, share );
     if (share) {
       setShareToEncrypt(share);
     }
@@ -41,6 +43,8 @@ export default function App() {
     localStorage.removeItem('userAddress');
     localStorage.removeItem('passkeyEncryptedShare');
     localStorage.removeItem('webAuthnCredentialId');
+    localStorage.removeItem('localShare');
+    
   };
 
   const toggleTheme = () => {

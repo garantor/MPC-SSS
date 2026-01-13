@@ -15,6 +15,7 @@ import { Address, PublicKey, AesGcm, Hex, WebAuthnP256 } from 'ox';
 import { combine, split } from "shamir-secret-sharing";
 import { bytesToHex, bytesToString } from "viem";
 import { useEvmClient } from "./useClient";
+import { encryptData, decryptData } from "../../encryptions";
 
 const prfInput = new TextEncoder().encode(
     `wallet-device-share:v1:${window.location.hostname}`
@@ -43,27 +44,9 @@ export function useSigner() {
     }
     async function registerUser() {
 
-        let userMnemonic = generateMnemonic(english, 128);
         const { getClient } = useEvmClient();
-        console.log("Generated Mnemonic:", userMnemonic);
-        let bufferType = stringToBytes(userMnemonic);
-        console.log("Encoded Mnemonic to Buffer:", bufferType);
-        let shares = await split(bufferType, 3, 2);
-        console.log("Generated Shares:", shares);
-        for (let i = 0; i < shares.length; i++) {
-            console.log(`Share ${i + 1}:`, bytesToHex(shares[i]));
-        }
 
-        console.log('-------------------------------');
-        localStorage.setItem('backendShare', bytesToHex(shares[0])); // these shares should be encrypted before storing in real application
-        localStorage.setItem('LocalShare', bytesToHex(shares[1])); // these shares should be encrypted before storing in real application
-        console.log('Shares stored locally and on backend (simulated with localStorage)');
-        console.log('--------------------------------', bytesToHex(shares[2]));
-        // let recoveredBuffer = await combine([shares[0], shares[1]]);
-        // console.log("Recovered Buffer from Shares:", recoveredBuffer);
-        // let recoveredMnemonic = bytesToString(recoveredBuffer);
-        // console.log("Decoded Recovered Mnemonic:", recoveredMnemonic);
-
+     
         const credential: any = await window.navigator.credentials.create(
             {
                 publicKey: {
@@ -103,60 +86,57 @@ export function useSigner() {
             throw new Error("PRF output not available");
         }
 
-        // let keyBuffer: ArrayBuffer;
+        let userMnemonic = generateMnemonic(english, 128);
+        let bufferType = stringToBytes(userMnemonic);
+        console.log("Encoded Mnemonic to Buffer:", bufferType);
 
-        // if (prfKey instanceof ArrayBuffer) {
-        //     keyBuffer = prfKey;
-        // } else if (ArrayBuffer.isView(prfKey)) { // covers Uint8Array, Int32Array, etc.
-        //     keyBuffer = prfKey.buffer;
-        // } else {
-        //     throw new Error("Unexpected PRF output type");
-        // }
+        let shares = await split(bufferType, 3, 2);
 
 
-        // // Convert to Uint8Array safely
-        // const prfKeyBytes = prfKey instanceof Uint8Array ? prfKey : new Uint8Array(keyBuffer);
-        // console.log("PRF Key Bytes:", prfKeyBytes, 'string:', bytesToHex(prfKeyBytes));
+        console.log("Generated Shares:", shares);
+        for (let i = 0; i < shares.length; i++) {
+            console.log(`Share ${i + 1}:`, bytesToHex(shares[i]));
+        }
 
-        // // Encrypt the user's share with the PRF key
+        console.log('-------------------------------');
+        //In production, theses share will both not exist on the server, below is the key destributions;
+        // Share 1: Backend Share - stored securely on backend server (here simulated with localStorage)
+        // Share 2: Cloud Share - stored securely on user's cloud infrastructure (here simulated with localStorage)
+        // Share 3: Passkey Share - to be encrypted with passkey and stored (handled separately)
+        localStorage.setItem('backendShare', bytesToHex(shares[0])); // these shares should be encrypted before storing in real application
+        localStorage.setItem('cloudShare', bytesToHex(shares[1])); // these shares should be encrypted before storing in real application
+        console.log('Shares stored locally and on backend (simulated with localStorage)');
+        console.log('--------------------------------', bytesToHex(shares[2]));
 
-        // let passkeyPRFEncrypted =await  AesGcm.getKey({ 'password': bytesToHex(prfKeyBytes) })
-        // console.log("Derived AES-GCM Key from PRF Key", passkeyPRFEncrypted);
-
-        // let encryptedShare = await AesGcm.encrypt(bytesToHex(shares[2]), passkeyPRFEncrypted);
-        // console.log("Encrypted User Share with PRF Key:", encryptedShare);
-
-        // localStorage.setItem('passkeyEncryptedShare', encryptedShare);
-        // localStorage.setItem('webAuthnCredentialId', credential.id);
-
-        // Decrypt the user's share with the PRF key (for demonstration)
-        // let decryptedShareHex = await AesGcm.decrypt(encryptedShare, passkeyPRFEncrypted);
-        // console.log("Decrypted User Share with PRF Key:", decryptedShareHex);
 
         // Derive owner account from mnemonic
         // no user mnemonic stored anywhere except the shares
 
-        // const owner = mnemonicToAccount(userMnemonic, {
-        //     accountIndex: 0,
-        // }) 
-        // // by default this will generate an evm account
-        // //same mnemonic can be used to generate other types of accounts as well
+        const owner = mnemonicToAccount(userMnemonic, {
+            accountIndex: 0,
+        }) 
 
-        // console.log("Derived Owner Account from Mnemonic:", owner);
+        // by default this will generate an evm account
+        //same mnemonic can be used to generate other types of accounts as well
 
-        // const smartAccount = await toMetaMaskSmartAccount({
-        //     client: await getClient(),
-        //     implementation: Implementation.Hybrid,
-        //     deployParams: [owner.address, [], [], []],
-        //     deploySalt: "0x",
-        //     signer: { account: owner },
-        // });
+        console.log("Derived Owner Account from Mnemonic:", owner);
+
+        const smartAccount = await toMetaMaskSmartAccount({
+            client: await getClient(),
+            implementation: Implementation.Hybrid,
+            deployParams: [owner.address, [], [], []],
+            deploySalt: "0x",
+            signer: { account: owner },
+        });
         localStorage.setItem('webAuthnCredentialId', credential.id);
 
-        return { credential, shareToEncrypt: bytesToHex(shares[2]) };
+        // only return the share that needs to be encrypted with passkey, 
+        // other shares are stored already
+        return { credential, shareToEncrypt: bytesToHex(shares[2]), smartAccount };
     }
 
     async function encryptShareWithPasskey(shareHex: string) {
+        console.log("Encrypting share with passkey via WebAuthn HEX:", shareHex);
         const storedCredentialId = localStorage.getItem('webAuthnCredentialId');
         if (!storedCredentialId) {
             throw new Error("WebAuthn credential ID not found");
@@ -185,15 +165,26 @@ export function useSigner() {
         }
 
         const prfKeyBytes = prfKey instanceof Uint8Array ? prfKey : new Uint8Array(prfKey as ArrayBuffer);
+
+
+        let encryptedShare = await encryptData(
+            shareHex,
+            bytesToHex(prfKeyBytes)
+        );
+
+        console.log("Encrypted Share with PRF Key via WebAuthn:", encryptedShare);
+
+
+
         
 
-        localStorage.setItem('passkeyEncryptedShare', shareHex as string);
-        return shareHex as string;
+        localStorage.setItem('passkeyEncryptedShare', JSON.stringify(encryptedShare));
+        return shareHex as string; // not really needed
     }
 
     async function retrieveLocalShare() {
         // retrieve shares from local storage and backend
-        let localShareHex = localStorage.getItem('LocalShare');
+        let localShareHex = localStorage.getItem('cloudShare');
 
         if (!localShareHex) {
             throw new Error("Shares not found in storage");
@@ -237,51 +228,44 @@ export function useSigner() {
             throw new Error("PRF output not available");
         }
 
-        console.log("Retrieved Credential via WebAuthn:", credential, prfKey);
 
-        let keyBuffer: ArrayBuffer;
-        if (prfKey instanceof ArrayBuffer) {
-            keyBuffer = prfKey;
-        } else if (ArrayBuffer.isView(prfKey)) { // covers Uint8Array, Int32Array, etc.
-            keyBuffer = prfKey.buffer as any;
-        } else {
-            throw new Error("Unexpected PRF output type");
-        }
-
-        const prfKeyBytes = prfKey instanceof Uint8Array ? prfKey : new Uint8Array(keyBuffer);
+        const prfKeyBytes = prfKey instanceof Uint8Array ? prfKey : new Uint8Array(prfKey as ArrayBuffer);
         console.log("PRF Key Bytes from WebAuthn:", prfKeyBytes, 'string:', bytesToHex(prfKeyBytes));
 
-        let encryptedShare = localStorage.getItem('passkeyEncryptedShare');
-        if (!encryptedShare) {
+        let encryptedShareStr = localStorage.getItem('passkeyEncryptedShare');
+        if (!encryptedShareStr) {
             throw new Error("Passkey encrypted share not found");
         }
 
+        let encryptedShare = JSON.parse(encryptedShareStr);
+
         console.log("Encrypted Share from Storage:", encryptedShare);
         console.log('--------------------------------');
+
+        let decryptedShareHex = await decryptData(
+            encryptedShare.ciphertext,
+            encryptedShare.iv,
+            encryptedShare.salt,
+            bytesToHex(prfKeyBytes)
+        ) as `0x${string}`;
+
+        console.log("Decrypted User Share with PRF Key:", decryptedShareHex);
         let mnemonic = await combine([
-            hexToBytes(localStorage.getItem('LocalShare') as `0x${string}`),
-            hexToBytes(encryptedShare as `0x${string}`),
+            hexToBytes(localStorage.getItem('cloudShare') as `0x${string}`),
+            hexToBytes(decryptedShareHex),
         ]);
         let recoveredMnemonic = bytesToString(mnemonic);
         console.log("Reconstructed Mnemonic from Shares:", recoveredMnemonic);
+        console.log('--------------------------------');
+        console.log('recovery share')
+
+        let recoveredShare = await combine([
+            hexToBytes(localStorage.getItem('cloudShare') as `0x${string}`),
+            hexToBytes(localStorage.getItem('backendShare') as `0x${string}`),
+        ]);
+        console.log("Recovered Share from Local and Backend Shares:", bytesToString(recoveredShare));
+    
         return recoveredMnemonic;
-        // let encryptionKey = await AesGcm.getKey({ 'password': bytesToHex(prfKeyBytes) })
-        // console.log("Derived AES-GCM Key from Encrypted Share2", encryptedShare as `0x${string}`, encryptionKey);
-
-        // // Decrypt the user's share with the PRF key (for demonstration)
-        // let decryptedShareHex = await AesGcm.decrypt(encryptedShare as `0x${string}`, encryptionKey);
-        // console.log("Decrypted User Share with PRF Key:", decryptedShareHex);
-
-        // let keyBuffer: ArrayBuffer;
-
-        // if (prfKey instanceof ArrayBuffer) {
-        //     keyBuffer = prfKey;
-        // } else if (ArrayBuffer.isView(prfKey)) { // covers Uint8Array, Int32Array, etc.
-        //     keyBuffer = prfKey.buffer;
-        // } else {
-        //     throw new Error("Unexpected PRF output type");
-        // }
-
     }
 
     return {

@@ -14,8 +14,9 @@ export function HomeScreen({ onLoginSuccess }: HomeScreenProps) {
         setLoading(true);
         try {
             const result = await registerUser();
+            console.log('the returned result from registerUser in HomeScreen:', result);
             // Using mock address as previously implemented for flow demo
-            onLoginSuccess("0x742d35Cc6634C0532925a3b844Bc454e4438f44e", result.shareToEncrypt);
+            onLoginSuccess(result.smartAccount.address, result.shareToEncrypt);
         } catch (error) {
             console.error('Signup Error:', error);
             alert('Signup failed. Please try again.');

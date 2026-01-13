@@ -13,6 +13,7 @@ export function EncryptionScreen({ share, onEncryptionComplete }: EncryptionScre
     const handleEncrypt = async () => {
         setLoading(true);
         try {
+            console.log("Starting encryption for share: inside the EncryptionScreen", share);
             await encryptShareWithPasskey(share);
             onEncryptionComplete();
         } catch (error) {
