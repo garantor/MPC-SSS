@@ -60,14 +60,16 @@ export function RecoveryScreen({ onRecoveryComplete, onCancel }: RecoveryScreenP
                     throw resp;
                 }
                 setStatus('fetching');
-                await fetchBackupAndRecover();
+                // Pass a retryCount to prevent infinite loops
+                await fetchBackupAndRecover(1);
             };
 
             const token = (window as any).gapi.client.getToken();
-            if (token === null) {
-                tokenClientRef.current.requestAccessToken({ prompt: 'consent' });
+            if (token !== null && (window as any).google.accounts.oauth2.hasGrantedAllScopes(token, SCOPES)) {
+                setStatus('fetching');
+                await fetchBackupAndRecover();
             } else {
-                tokenClientRef.current.requestAccessToken({ prompt: '' });
+                tokenClientRef.current.requestAccessToken({ prompt: token ? '' : 'consent' });
             }
 
         } catch (error: any) {
@@ -78,17 +80,25 @@ export function RecoveryScreen({ onRecoveryComplete, onCancel }: RecoveryScreenP
         }
     };
 
-    const fetchBackupAndRecover = async () => {
+    const fetchBackupAndRecover = async (retryCount = 0) => {
         try {
             // 1. List files in appDataFolder
+            const token = (window as any).gapi.client.getToken();
             const response = await fetch(
                 'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&pageSize=10&fields=files(id, name, createdTime)',
                 {
                     headers: {
-                        'Authorization': `Bearer ${(window as any).gapi.client.getToken().access_token}`,
+                        'Authorization': `Bearer ${token?.access_token}`,
                     },
                 }
             );
+
+            if (response.status === 401 && retryCount === 0) {
+                console.warn('Unauthorized (401) during file listing. Relogin and retrying...');
+                (window as any).gapi.client.setToken(null);
+                await handleRecovery(); // This will re-auth and call fetchBackupAndRecover(1) via callback
+                return;
+            }
 
             if (!response.ok) throw new Error('Failed to list files');
             const data = await response.json();
@@ -111,6 +121,13 @@ export function RecoveryScreen({ onRecoveryComplete, onCancel }: RecoveryScreenP
                     },
                 }
             );
+
+            if (contentResponse.status === 401 && retryCount === 0) {
+                console.warn('Unauthorized (401) during file download. Relogin and retrying...');
+                (window as any).gapi.client.setToken(null);
+                await handleRecovery();
+                return;
+            }
 
             if (!contentResponse.ok) throw new Error('Failed to download backup content');
             const backupData = await contentResponse.json();

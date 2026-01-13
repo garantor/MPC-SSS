@@ -70,14 +70,16 @@ export function CloudBackupScreen({ onBackupComplete }: CloudBackupScreenProps) 
                 }
 
                 setStatus('uploading');
-                await uploadFile();
+                // Pass a retryCount to prevent infinite loops
+                await uploadFile(1);
             };
 
             const token = (window as any).gapi.client.getToken();
-            if (token === null) {
-                tokenClientRef.current.requestAccessToken({ prompt: 'consent' });
+            if (token !== null && (window as any).google.accounts.oauth2.hasGrantedAllScopes(token, SCOPES)) {
+                setStatus('uploading');
+                await uploadFile();
             } else {
-                tokenClientRef.current.requestAccessToken({ prompt: '' });
+                tokenClientRef.current.requestAccessToken({ prompt: token ? '' : 'consent' });
             }
 
         } catch (error: any) {
@@ -88,7 +90,7 @@ export function CloudBackupScreen({ onBackupComplete }: CloudBackupScreenProps) 
         }
     };
 
-    const uploadFile = async () => {
+    const uploadFile = async (retryCount = 0) => {
         try {
             const cloudShareHex = localStorage.getItem('cloudShare');
             if (!cloudShareHex) {
@@ -112,16 +114,25 @@ export function CloudBackupScreen({ onBackupComplete }: CloudBackupScreenProps) 
             form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
             form.append('file', file);
 
+            const token = (window as any).gapi.client.getToken();
             const response = await fetch(
                 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
                 {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${(window as any).gapi.client.getToken().access_token}`,
+                        'Authorization': `Bearer ${token?.access_token}`,
                     },
                     body: form,
                 }
             );
+
+            if (response.status === 401 && retryCount === 0) {
+                console.warn('Unauthorized (401) during upload. Relogin and retrying...');
+                // Force a relogin by clearing the token and calling handleBackup
+                (window as any).gapi.client.setToken(null);
+                await handleBackup(); // This will re-auth and call uploadFile(1) via callback
+                return;
+            }
 
             if (!response.ok) {
                 throw new Error('Failed to upload file to Google Drive');
