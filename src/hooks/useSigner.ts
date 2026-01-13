@@ -251,21 +251,27 @@ export function useSigner() {
 
         console.log("Decrypted User Share with PRF Key:", decryptedShareHex);
         let mnemonic = await combine([
-            hexToBytes(localStorage.getItem('cloudShare') as `0x${string}`),
+            hexToBytes(localStorage.getItem('backendShare') as `0x${string}`),
             hexToBytes(decryptedShareHex),
         ]);
-        let recoveredMnemonic = bytesToString(mnemonic);
+        const recoveredMnemonic = bytesToString(mnemonic);
         console.log("Reconstructed Mnemonic from Shares:", recoveredMnemonic);
         console.log('--------------------------------');
-        console.log('recovery share')
 
-        let recoveredShare = await combine([
-            hexToBytes(localStorage.getItem('cloudShare') as `0x${string}`),
-            hexToBytes(localStorage.getItem('backendShare') as `0x${string}`),
-        ]);
-        console.log("Recovered Share from Local and Backend Shares:", bytesToString(recoveredShare));
+        const { getClient } = useEvmClient();
+        const owner = mnemonicToAccount(recoveredMnemonic, {
+            accountIndex: 0,
+        });
 
-        return recoveredMnemonic;
+        const smartAccount = await toMetaMaskSmartAccount({
+            client: await getClient(),
+            implementation: Implementation.Hybrid,
+            deployParams: [owner.address, [], [], []],
+            deploySalt: "0x",
+            signer: { account: owner },
+        });
+
+        return { address: smartAccount.address, smartAccount };
     }
 
     async function recoverWallet(cloudShareHex: string) {

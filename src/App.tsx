@@ -40,6 +40,11 @@ export default function App() {
     console.log("User logged in with address:", address, share);
     if (share) {
       setShareToEncrypt(share);
+    } else {
+      // If no share is provided, it's a login (existing user)
+      setIsEncrypted(true);
+      setIsCloudBackedUp(true);
+      localStorage.setItem('isCloudBackedUp', 'true');
     }
   };
 
@@ -58,6 +63,7 @@ export default function App() {
     console.log("Recovery successful! Wallet Mnemonic:", mnemonic);
     setShowRecovery(false);
     setIsCloudBackedUp(true); // Ensure state is synced
+    localStorage.setItem('isCloudBackedUp', 'true');
     alert("Wallet successfully recovered! Check console for mnemonic.");
   };
 
@@ -66,8 +72,8 @@ export default function App() {
     setShareToEncrypt(null);
     setIsEncrypted(false);
     localStorage.removeItem('userAddress');
-    localStorage.removeItem('passkeyEncryptedShare');
-    localStorage.removeItem('webAuthnCredentialId');
+    // localStorage.removeItem('passkeyEncryptedShare');
+    // localStorage.removeItem('webAuthnCredentialId');
     localStorage.removeItem('cloudShare');
     localStorage.removeItem('isCloudBackedUp');
     setIsCloudBackedUp(false);
