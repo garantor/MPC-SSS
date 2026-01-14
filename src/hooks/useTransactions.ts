@@ -3,7 +3,7 @@ import { useEvmClient } from "./useClient";
 import { createBundlerClient } from "viem/account-abstraction";
 import { useSigner } from "./useSigner";
 
-
+const API_KEY = import.meta.env.VITE_PIMLICO_API_KEY;
 
 export function useTransactions(userAddress: Address) {
     const { getClient } = useEvmClient();
@@ -20,7 +20,7 @@ export function useTransactions(userAddress: Address) {
         // Note: In a real app, API keys should be in environment variables
         const bundlerClient = createBundlerClient({
             client: await getClient(),
-            transport: http("https://api.pimlico.io/v2/11155111/rpc?apikey=pim_Zm8u8qxoHti2thGpGKFCvi"),
+            transport: http("https://api.pimlico.io/v2/11155111/rpc?apikey=" + API_KEY),
         });
 
         console.log("Sending UserOperation...");
