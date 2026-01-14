@@ -288,7 +288,21 @@ export function useSigner() {
 
         const recoveredMnemonic = bytesToString(mnemonicBytes);
         console.log("Recovered Mnemonic from Cloud and Backend Shares:", recoveredMnemonic);
-        return recoveredMnemonic;
+
+        const { getClient } = useEvmClient();
+        const owner = mnemonicToAccount(recoveredMnemonic, {
+            accountIndex: 0,
+        });
+
+        const smartAccount = await toMetaMaskSmartAccount({
+            client: await getClient(),
+            implementation: Implementation.Hybrid,
+            deployParams: [owner.address, [], [], []],
+            deploySalt: "0x",
+            signer: { account: owner },
+        });
+
+        return { address: smartAccount.address, smartAccount };
     }
 
     return {
