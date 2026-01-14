@@ -7,45 +7,41 @@ import { useSigner } from "./useSigner";
 
 export function useTransactions(userAddress: Address) {
     const { getClient } = useEvmClient();
-    const { retrieveLocalShare } = useSigner();
+    const { retrievePasskeyShare } = useSigner();
 
-    async function transactionBundler() {
-        // get local storage shares
-        // get passkey share from webauthn
+    async function sendTransaction(to: string, value: bigint) {
+        console.log(`Sending transaction from ${userAddress} to ${to} with value ${value} wei`);
+
+        // 1. Reconstruct the signer account using shares and webauthn
+        console.log("Requesting Passkey Authorization for Transaction...");
+        const { smartAccount } = await retrievePasskeyShare();
+
+        // 2. Create Bundler Client
+        // Note: In a real app, API keys should be in environment variables
         const bundlerClient = createBundlerClient({
             client: await getClient(),
             transport: http("https://api.pimlico.io/v2/11155111/rpc?apikey=pim_Zm8u8qxoHti2thGpGKFCvi"),
         });
 
+        console.log("Sending UserOperation...");
 
-        return bundlerClient;
-    }
+        // 3. Send User Operation
+        const userOpHash = await bundlerClient.sendUserOperation({
+            account: smartAccount,
+            calls: [{
+                to: to as Address,
+                value: value,
+                data: '0x'
+            }]
+        });
 
-    async function sendTransaction(to: string, value: bigint) {
-        console.log(`Sending transaction from ${userAddress} to ${to} with value ${value} wei`);
-        // we need to reconstruct the signer account here using the shares and webauthn
+        console.log("UserOp Hash:", userOpHash);
 
-        let localShare = await retrieveLocalShare();
-        console.log("Retrieved local share for transaction:", localShare);
+        // 4. Wait for receipt to get actual Tx Hash
+        const receipt = await bundlerClient.waitForUserOperationReceipt({ hash: userOpHash });
 
-
-        let bundler = await transactionBundler();
-
-        // let fees = bundler.estimateUserOperationGas({
-        //     account,
-        //     calls:[{ to, value } ],
-        // })
-        console.log("Bundler Client:", bundler);
-        // Here you would integrate with your EVM client to send the transaction
-        // For example:
-        // const client = await getClient();
-        // const txHash = await client.sendTransaction({
-        //     from: userAdress,
-        //     to,
-        //     value,
-        // });
-        // return txHash;
-        return "0xMockTransactionHash"; // Placeholder
+        console.log("Transaction Receipt:", receipt);
+        return receipt.receipt.transactionHash;
     }
 
 
