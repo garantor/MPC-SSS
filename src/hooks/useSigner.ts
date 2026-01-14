@@ -281,6 +281,7 @@ export function useSigner() {
             throw new Error("Backend share not found");
         }
 
+        // 1. Reconstruct Mnemonic
         const mnemonicBytes = await combine([
             hexToBytes(cloudShareHex as `0x${string}`),
             hexToBytes(backendShareHex as `0x${string}`),
@@ -288,6 +289,60 @@ export function useSigner() {
 
         const recoveredMnemonic = bytesToString(mnemonicBytes);
         console.log("Recovered Mnemonic from Cloud and Backend Shares:", recoveredMnemonic);
+
+        // 2. Key Rotation: Generate NEW shares from the same mnemonic
+        // This ensures that the old shares are invalidated (logically) and we start fresh with a new Passkey
+        const bufferMnemonic = stringToBytes(recoveredMnemonic);
+        const newShares = await split(bufferMnemonic, 3, 2);
+        console.log("Generated New Shares for Recovery (Rotation)");
+
+        // 3. Create NEW WebAuthn Credential
+        // We need to re-register the passkey for this device since we are in recovery mode
+        const credential: any = await window.navigator.credentials.create({
+            publicKey: {
+                challenge: crypto.getRandomValues(new Uint8Array(32)),
+                rp: {
+                    name: "MPC Demo App",
+                    id: window.location.hostname,
+                },
+                user: {
+                    id: crypto.getRandomValues(new Uint8Array(16)),
+                    name: "recovered-user@mpc-demo.com",
+                    displayName: "Recovered User"
+                },
+                pubKeyCredParams: [
+                    {
+                        type: "public-key",
+                        alg: -7 // ES256 algorithm
+                    }
+                ],
+                authenticatorSelection: {
+                    authenticatorAttachment: "platform",
+                    userVerification: "required"
+                },
+                timeout: 60000,
+                attestation: "direct",
+                extensions: {
+                    prf: {} as any,
+                }
+            }
+        });
+
+        console.log("New WebAuthn Credential Created during Recovery:", credential);
+        localStorage.setItem('webAuthnCredentialId', credential.id);
+
+        // 4. Store New Shares
+        // Share 1: Backend Share - overwrite logic
+        localStorage.setItem('backendShare', bytesToHex(newShares[0]));
+        // Share 2: Cloud Share - overwrite local copy, UI will handle upload 
+        localStorage.setItem('cloudShare', bytesToHex(newShares[1]));
+
+        // Invalidate Cloud Backup Flag to force the user to upload the new cloud share
+        localStorage.removeItem('isCloudBackedUp');
+
+        // Share 3: To be encrypted with the new Passkey
+        const shareToEncrypt = bytesToHex(newShares[2]);
+
 
         const { getClient } = useEvmClient();
         const owner = mnemonicToAccount(recoveredMnemonic, {
@@ -302,7 +357,8 @@ export function useSigner() {
             signer: { account: owner },
         });
 
-        return { address: smartAccount.address, smartAccount };
+        // Return shareToEncrypt so the UI can prompt for Encryption (Passkey Assertion)
+        return { address: smartAccount.address, smartAccount, shareToEncrypt };
     }
 
     return {

@@ -174,7 +174,7 @@ export function HomeScreen({ onLoginSuccess }: HomeScreenProps) {
             setRecoveryStatus('success');
             // Slight delay to show success state
             setTimeout(() => {
-                onLoginSuccess(result.address);
+                onLoginSuccess(result.address, result.shareToEncrypt);
             }, 1000);
 
         } catch (error: any) {
