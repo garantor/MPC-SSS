@@ -212,7 +212,7 @@ export function useSigner() {
                     type: 'public-key',
                     id: base64UrlToUint8Array(storedCredentialId) as any,
                 }],
-                userVerification: 'preferred',
+                userVerification: 'required',
                 extensions: {
                     prf: {
                         eval: { first: prfInput },
@@ -339,6 +339,7 @@ export function useSigner() {
 
         // Invalidate Cloud Backup Flag to force the user to upload the new cloud share
         localStorage.removeItem('isCloudBackedUp');
+        localStorage.removeItem('passkeyEncryptedShare');
 
         // Share 3: To be encrypted with the new Passkey
         const shareToEncrypt = bytesToHex(newShares[2]);

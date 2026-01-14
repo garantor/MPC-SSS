@@ -32,6 +32,7 @@ export default function App() {
     console.log("User logged in with address:", address, share);
     if (share) {
       setShareToEncrypt(share);
+      setIsEncrypted(false);
     } else {
       // If no share is provided, it's a login (existing user)
       setIsEncrypted(true);

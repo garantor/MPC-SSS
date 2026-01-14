@@ -9,7 +9,7 @@ const hexToBuf = (hex: string): Uint8Array =>
 // THIS IS NOT SECURE FOR PRODUCTION USE, just for demo purposes
 // Always use well-vetted libraries for real applications
 
-const ITERATIONS = 600000; 
+const ITERATIONS = 600000;
 export async function encryptData(textToEncrypt: string, password: string) {
     const encoder = new TextEncoder();
     const data = encoder.encode(textToEncrypt);
@@ -35,7 +35,7 @@ export async function encryptData(textToEncrypt: string, password: string) {
     );
 
     return {
-      
+
         ciphertext: bufToHex(ciphertext),
         iv: bufToHex(iv.buffer),
         salt: bufToHex(salt.buffer)

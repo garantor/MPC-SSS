@@ -115,18 +115,6 @@ export function DashboardScreen({ address, onDisconnect }: DashboardProps) {
                 <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
                     SEND ASSETS
                 </button>
-
-                <button
-                    className="btn-outline"
-                    style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}
-                    onClick={() => {
-                        // Notify parent to show recovery screen
-                        (window as any).dispatchEvent(new CustomEvent('trigger-recovery'));
-                    }}
-                >
-                    RESTORE FROM CLOUD
-                </button>
-
                 <button className="btn-outline btn-disconnect" onClick={onDisconnect}>
                     DISCONNECT
                 </button>
