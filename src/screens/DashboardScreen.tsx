@@ -161,6 +161,7 @@ export function DashboardScreen({ evmAddress, solanaAddress, onDisconnect }: Das
                 onClose={() => setIsModalOpen(false)}
                 onSuccess={fetchBalance}
                 address={currentAddress}
+                chain={selectedChain}
             />
         </div>
     );
