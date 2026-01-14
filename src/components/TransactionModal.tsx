@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTransactions } from '../hooks/useTransactions';
 
-import { ChainConfig, ChainType } from '../config/chains';
+import { ChainConfig } from '../config/chains';
 
 interface TransactionModalProps {
     isOpen: boolean;
