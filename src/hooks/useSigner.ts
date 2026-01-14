@@ -6,7 +6,7 @@ import {
 
 } from "viem/account-abstraction";
 
-import { hexToBytes, stringToBytes, toHex } from "viem";
+import { hexToBytes, stringToBytes } from "viem";
 import { CredentialCreationFailedError } from "ox/WebAuthnP256";
 import { createBundlerClient, type CreateWebAuthnCredentialReturnType } from 'viem/account-abstraction';
 import { mnemonicToAccount, privateKeyToAccount, generateMnemonic, english } from 'viem/accounts';
