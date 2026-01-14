@@ -1,43 +1,125 @@
-import React from 'react';
-import { split, combine } from 'shamir-secret-sharing';
-import * as ETHERS from 'ethers';
-import { useSigner } from './hooks/useSigner';
-
-function HomeScreen() {
-  const { getSigner } = useSigner();
-
-  async function handleLogin() {
-    console.log('Login Pressed');
-    try {
-      let signerResult = await getSigner();
-      console.log("Signer all info:", signerResult);
-      console.log('Smart Account:', signerResult.smartAccount);
-      console.log('Owner Address:', signerResult.owner.toString());
-    } catch (error) {
-      console.error('Login Error:', error);
-    }
-  }
-
-  return (
-    <div className="card">
-      <h1>Welcome</h1>
-      <p>Please login or signup to continue</p>
-
-      <div className="button-group">
-        <button className="btn-primary" onClick={handleLogin}>
-          LOGIN
-        </button>
-
-        <button className="btn-outline" onClick={() => console.log('Signup Pressed')}>
-          SIGNUP
-        </button>
-      </div>
-    </div>
-  );
-}
+import React, { useState, useEffect } from 'react';
+import { HomeScreen } from './screens/HomeScreen';
+import { EncryptionScreen } from './screens/EncryptionScreen';
+import { CloudBackupScreen } from './screens/CloudBackupScreen';
+import { DashboardScreen } from './screens/DashboardScreen';
 
 export default function App() {
+  const [userAddress, setUserAddress] = useState<string | null>(() => {
+    return localStorage.getItem('userAddress');
+  });
+  const [solanaAddress, setSolanaAddress] = useState<string | null>(() => {
+    return localStorage.getItem('solanaAddress');
+  });
+  const [stellarAddress, setStellarAddress] = useState<string | null>(() => {
+    return localStorage.getItem('stellarAddress');
+  });
+  const [xrpAddress, setXrpAddress] = useState<string | null>(() => {
+    return localStorage.getItem('xrpAddress');
+  });
+  const [shareToEncrypt, setShareToEncrypt] = useState<string | null>(null);
+  const [isEncrypted, setIsEncrypted] = useState<boolean>(() => {
+    return !!localStorage.getItem('passkeyEncryptedShare');
+  });
+  const [isCloudBackedUp, setIsCloudBackedUp] = useState<boolean>(() => {
+    return localStorage.getItem('isCloudBackedUp') === 'true';
+  });
+
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('theme') as 'light' | 'dark') || 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const handleLoginSuccess = (data: { evmAddress: string, solanaAddress: string, stellarAddress: string, xrpAddress: string }, share?: string) => {
+    setUserAddress(data.evmAddress);
+    setSolanaAddress(data.solanaAddress);
+    setStellarAddress(data.stellarAddress);
+    setXrpAddress(data.xrpAddress);
+
+    localStorage.setItem('userAddress', data.evmAddress);
+    localStorage.setItem('solanaAddress', data.solanaAddress);
+    localStorage.setItem('stellarAddress', data.stellarAddress);
+    localStorage.setItem('xrpAddress', data.xrpAddress);
+
+    console.log("User logged in with addresses:", data, share);
+    if (share) {
+      setShareToEncrypt(share);
+      setIsEncrypted(false);
+    } else {
+      // If no share is provided, it's a login (existing user)
+      setIsEncrypted(true);
+      setIsCloudBackedUp(true);
+      localStorage.setItem('isCloudBackedUp', 'true');
+    }
+  };
+
+  const handleEncryptionComplete = () => {
+    // We don't clear shareToEncrypt yet because we might need it? 
+    // Actually shareToEncrypt is the passkey share. cloudShare is already in localStorage.
+    setIsEncrypted(true);
+  };
+
+  const handleBackupComplete = () => {
+    setShareToEncrypt(null);
+    setIsCloudBackedUp(true);
+  };
+
+  const handleDisconnect = () => {
+    setUserAddress(null);
+    setSolanaAddress(null);
+    setStellarAddress(null);
+    setXrpAddress(null);
+
+    setShareToEncrypt(null);
+    setIsEncrypted(false);
+    localStorage.removeItem('userAddress');
+    localStorage.removeItem('solanaAddress');
+    localStorage.removeItem('stellarAddress');
+    localStorage.removeItem('xrpAddress');
+    // localStorage.removeItem('passkeyEncryptedShare');
+    // localStorage.removeItem('webAuthnCredentialId');
+    localStorage.removeItem('cloudShare');
+    localStorage.removeItem('isCloudBackedUp');
+    setIsCloudBackedUp(false);
+  };
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
+
+  const renderContent = () => {
+    if (!userAddress) {
+      return <HomeScreen onLoginSuccess={handleLoginSuccess as any} />;
+    }
+
+    if (shareToEncrypt && !isEncrypted) {
+      return <EncryptionScreen share={shareToEncrypt} onEncryptionComplete={handleEncryptionComplete} />;
+    }
+
+    if (isEncrypted && !isCloudBackedUp) {
+      return <CloudBackupScreen onBackupComplete={handleBackupComplete} />;
+    }
+
+    return <DashboardScreen
+      evmAddress={userAddress}
+      solanaAddress={solanaAddress || ''}
+      stellarAddress={stellarAddress || ''}
+      xrpAddress={xrpAddress || ''}
+      onDisconnect={handleDisconnect}
+    />;
+  };
+
   return (
-    <HomeScreen />
+    <div className="app-container">
+      <button className="theme-toggle" onClick={toggleTheme} title="Toggle Theme">
+        {theme === 'light' ? '🌙' : '☀️'}
+      </button>
+
+      {renderContent()}
+    </div>
   );
 }
