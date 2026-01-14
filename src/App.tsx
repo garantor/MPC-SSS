@@ -3,7 +3,6 @@ import { HomeScreen } from './screens/HomeScreen';
 import { EncryptionScreen } from './screens/EncryptionScreen';
 import { CloudBackupScreen } from './screens/CloudBackupScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
-import { encryptData, decryptData } from '../encryptions';
 
 export default function App() {
   const [userAddress, setUserAddress] = useState<string | null>(() => {
