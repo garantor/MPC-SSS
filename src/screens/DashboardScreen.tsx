@@ -26,7 +26,7 @@ export function DashboardScreen({ evmAddress, solanaAddress, stellarAddress, xrp
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isRecovering, setIsRecovering] = useState(false);
     const [recoveredMnemonic, setRecoveredMnemonic] = useState<string | null>(null);
-    const { retrievePasskeyShare } = useSigner();
+    useSigner();
 
     let currentAddress = '';
     switch (selectedChain.type) {
