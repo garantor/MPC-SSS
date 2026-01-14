@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { parseEther, isAddress } from 'viem';
 import { useTransactions } from '../hooks/useTransactions';
 
 import { ChainConfig, ChainType } from '../config/chains';
