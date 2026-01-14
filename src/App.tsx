@@ -9,6 +9,9 @@ export default function App() {
   const [userAddress, setUserAddress] = useState<string | null>(() => {
     return localStorage.getItem('userAddress');
   });
+  const [solanaAddress, setSolanaAddress] = useState<string | null>(() => {
+    return localStorage.getItem('solanaAddress');
+  });
   const [shareToEncrypt, setShareToEncrypt] = useState<string | null>(null);
   const [isEncrypted, setIsEncrypted] = useState<boolean>(() => {
     return !!localStorage.getItem('passkeyEncryptedShare');
@@ -26,10 +29,13 @@ export default function App() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  const handleLoginSuccess = (address: string, share?: string) => {
-    setUserAddress(address);
-    localStorage.setItem('userAddress', address);
-    console.log("User logged in with address:", address, share);
+  const handleLoginSuccess = (data: { evmAddress: string, solanaAddress: string }, share?: string) => {
+    setUserAddress(data.evmAddress);
+    setSolanaAddress(data.solanaAddress);
+    localStorage.setItem('userAddress', data.evmAddress);
+    localStorage.setItem('solanaAddress', data.solanaAddress);
+
+    console.log("User logged in with addresses:", data, share);
     if (share) {
       setShareToEncrypt(share);
       setIsEncrypted(false);
@@ -54,9 +60,11 @@ export default function App() {
 
   const handleDisconnect = () => {
     setUserAddress(null);
+    setSolanaAddress(null);
     setShareToEncrypt(null);
     setIsEncrypted(false);
     localStorage.removeItem('userAddress');
+    localStorage.removeItem('solanaAddress');
     // localStorage.removeItem('passkeyEncryptedShare');
     // localStorage.removeItem('webAuthnCredentialId');
     localStorage.removeItem('cloudShare');
@@ -70,7 +78,7 @@ export default function App() {
 
   const renderContent = () => {
     if (!userAddress) {
-      return <HomeScreen onLoginSuccess={handleLoginSuccess} />;
+      return <HomeScreen onLoginSuccess={handleLoginSuccess as any} />;
     }
 
     if (shareToEncrypt && !isEncrypted) {
@@ -81,7 +89,7 @@ export default function App() {
       return <CloudBackupScreen onBackupComplete={handleBackupComplete} />;
     }
 
-    return <DashboardScreen address={userAddress} onDisconnect={handleDisconnect} />;
+    return <DashboardScreen evmAddress={userAddress} solanaAddress={solanaAddress || ''} onDisconnect={handleDisconnect} />;
   };
 
   return (

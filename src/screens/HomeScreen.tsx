@@ -3,7 +3,7 @@ import { useSigner } from '../hooks/useSigner';
 import { GoogleIcon } from '../components/GoogleIcon';
 
 interface HomeScreenProps {
-    onLoginSuccess: (address: string, shareToEncrypt?: any) => void;
+    onLoginSuccess: (addresses: { evmAddress: string, solanaAddress: string }, shareToEncrypt?: any) => void;
 }
 
 export function HomeScreen({ onLoginSuccess }: HomeScreenProps) {
@@ -54,7 +54,7 @@ export function HomeScreen({ onLoginSuccess }: HomeScreenProps) {
         try {
             const result = await retrievePasskeyShare();
             console.log('the returned result from retrievePasskeyShare in HomeScreen:', result);
-            onLoginSuccess(result.address);
+            onLoginSuccess({ evmAddress: result.address, solanaAddress: result.accounts.solana.address });
         } catch (error) {
             console.error('Passkey Login Error:', error);
             alert('Passkey login failed. Please ensure you have a registered wallet on this device.');
@@ -70,7 +70,7 @@ export function HomeScreen({ onLoginSuccess }: HomeScreenProps) {
         try {
             const result: any = await registerUser();
             console.log('the returned result from registerUser in HomeScreen:', result);
-            onLoginSuccess(result.smartAccount.address, result.shareToEncrypt);
+            onLoginSuccess({ evmAddress: result.address, solanaAddress: result.accounts.solana.address }, result.shareToEncrypt);
         } catch (error) {
             console.error('Signup Error:', error);
             alert('Signup failed. Please try again.');
@@ -169,12 +169,12 @@ export function HomeScreen({ onLoginSuccess }: HomeScreenProps) {
             }
 
             // 4. Recover wallet
-            const result = await recoverWallet(backupData.share); // result is { address, smartAccount }
+            const result = await recoverWallet(backupData.share); // result is { address, smartAccount, accounts }
 
             setRecoveryStatus('success');
             // Slight delay to show success state
             setTimeout(() => {
-                onLoginSuccess(result.address, result.shareToEncrypt);
+                onLoginSuccess({ evmAddress: result.address, solanaAddress: result.accounts.solana.address }, result.shareToEncrypt);
             }, 1000);
 
         } catch (error: any) {

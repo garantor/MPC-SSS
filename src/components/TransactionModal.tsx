@@ -2,23 +2,27 @@ import React, { useState } from 'react';
 import { parseEther, isAddress } from 'viem';
 import { useTransactions } from '../hooks/useTransactions';
 
+import { ChainConfig, ChainType } from '../config/chains';
+
 interface TransactionModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
     address: string;
+    chain?: ChainConfig;
 }
 
-export function TransactionModal({ isOpen, onClose, onSuccess, address }: TransactionModalProps) {
+export function TransactionModal({ isOpen, onClose, onSuccess, address, chain }: TransactionModalProps) {
     const [toAddress, setToAddress] = useState('');
     const [amount, setAmount] = useState('');
     const [status, setStatus] = useState<{ type: 'success' | 'error' | 'pending'; message: string; hash?: string } | null>(null);
-    const { sendTransaction } = useTransactions(address as `0x${string}`);
+    const { sendTransaction } = useTransactions(address, chain?.type);
 
     if (!isOpen) return null;
 
     const handleSend = async () => {
-        if (!isAddress(toAddress)) {
+        // Validation logic needs to be chain aware or loose
+        if (!toAddress) { // Simplified validation
             setStatus({ type: 'error', message: 'Invalid recipient address.' });
             return;
         }
@@ -29,7 +33,7 @@ export function TransactionModal({ isOpen, onClose, onSuccess, address }: Transa
 
         setStatus({ type: 'pending', message: 'Initiating transaction...' });
         try {
-            const txHash = await sendTransaction(toAddress, parseEther(amount));
+            const txHash = await sendTransaction(toAddress, amount); // Pass string amount
             setStatus({ type: 'success', message: 'Transaction sent successfully!', hash: txHash });
             setTimeout(() => {
                 onSuccess();

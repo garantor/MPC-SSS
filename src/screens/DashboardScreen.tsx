@@ -4,13 +4,17 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSigner } from '../hooks/useSigner';
 import { TransactionModal } from '../components/TransactionModal';
+import { CHAINS, DEFAULT_CHAIN, ChainType, ChainConfig } from '../config/chains';
+import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 interface DashboardProps {
-    address: string;
+    evmAddress: string;
+    solanaAddress: string;
     onDisconnect: () => void;
 }
 
-export function DashboardScreen({ address, onDisconnect }: DashboardProps) {
+export function DashboardScreen({ evmAddress, solanaAddress, onDisconnect }: DashboardProps) {
+    const [selectedChain, setSelectedChain] = useState<ChainConfig>(DEFAULT_CHAIN);
     const [copied, setCopied] = useState(false);
     const [balance, setBalance] = useState<string>('0.00');
     const [isLoadingBalance, setIsLoadingBalance] = useState(true);
@@ -19,20 +23,32 @@ export function DashboardScreen({ address, onDisconnect }: DashboardProps) {
     const [recoveredMnemonic, setRecoveredMnemonic] = useState<string | null>(null);
     const { retrievePasskeyShare } = useSigner();
 
+    const currentAddress = selectedChain.type === ChainType.EVM ? evmAddress : solanaAddress;
+
+    // EVM Hooks
+    const { getBalance: getEvmBalance } = useTransactions(evmAddress as `0x${string}`);
+
     const handleRecoverySuccess = (mnemonic: string) => {
         setRecoveredMnemonic(mnemonic);
         setIsRecovering(false);
     };
 
-    const { getBalance } = useTransactions(address as `0x${string}`);
-
     const fetchBalance = async () => {
         setIsLoadingBalance(true);
         try {
-            const balanceWei = await getBalance();
-            setBalance(formatEther(balanceWei));
+            if (selectedChain.type === ChainType.EVM) {
+                const balanceWei = await getEvmBalance();
+                setBalance(formatEther(balanceWei));
+            } else {
+                // SOLANA
+                const connection = new Connection(selectedChain.rpcUrl, 'confirmed');
+                const publicKey = new PublicKey(solanaAddress);
+                const balanceLamports = await connection.getBalance(publicKey);
+                setBalance((balanceLamports / LAMPORTS_PER_SOL).toFixed(4));
+            }
         } catch (error) {
             console.error('Error fetching balance:', error);
+            setBalance('0.00');
         } finally {
             setIsLoadingBalance(false);
         }
@@ -40,10 +56,10 @@ export function DashboardScreen({ address, onDisconnect }: DashboardProps) {
 
     useEffect(() => {
         fetchBalance();
-    }, [address]);
+    }, [selectedChain, evmAddress, solanaAddress]);
 
     const copyToClipboard = () => {
-        navigator.clipboard.writeText(address);
+        navigator.clipboard.writeText(currentAddress);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
@@ -63,13 +79,33 @@ export function DashboardScreen({ address, onDisconnect }: DashboardProps) {
             <div className="success-icon">✓</div>
             <div className="badge">VERIFIED ACCOUNT</div>
 
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', width: '100%', justifyContent: 'center' }}>
+                {Object.values(CHAINS).map(chain => (
+                    <button
+                        key={chain.id}
+                        className="btn-outline"
+                        onClick={() => setSelectedChain(chain)}
+                        style={{
+                            flex: 1,
+                            borderColor: selectedChain.id === chain.id ? 'var(--primary)' : 'var(--glass-border)',
+                            background: selectedChain.id === chain.id ? 'rgba(var(--primary-rgb), 0.1)' : 'transparent',
+                            color: selectedChain.id === chain.id ? 'var(--primary)' : 'var(--text-dim)',
+                            fontSize: '0.8rem',
+                            padding: '8px'
+                        }}
+                    >
+                        {chain.name}
+                    </button>
+                ))}
+            </div>
+
             <div className="balance-section">
-                <span className="label">Available Balance</span>
+                <span className="label">{selectedChain.name} Balance</span>
                 {isLoadingBalance ? (
                     <div className="loading-skeleton"></div>
                 ) : (
                     <div className="balance-amount">
-                        {parseFloat(balance).toFixed(4)} <span className="balance-unit">ETH</span>
+                        {parseFloat(balance).toFixed(4)} <span className="balance-unit">{selectedChain.currency}</span>
                         <span className="refresh-icon" onClick={fetchBalance} title="Refresh Balance">🔄</span>
                     </div>
                 )}
@@ -77,7 +113,7 @@ export function DashboardScreen({ address, onDisconnect }: DashboardProps) {
 
             <div className="qr-container">
                 <QRCodeSVG
-                    value={address}
+                    value={currentAddress}
                     size={140}
                     level={"H"}
                     includeMargin={false}
@@ -92,9 +128,9 @@ export function DashboardScreen({ address, onDisconnect }: DashboardProps) {
                 />
             </div>
 
-            <span className="label">Your EVM Blockchain Address</span>
+            <span className="label">Your {selectedChain.name} Address</span>
             <div className="address-box" onClick={copyToClipboard} title="Click to copy">
-                {address}
+                {currentAddress}
                 {copied && (
                     <div style={{
                         position: 'absolute',
@@ -124,7 +160,7 @@ export function DashboardScreen({ address, onDisconnect }: DashboardProps) {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSuccess={fetchBalance}
-                address={address}
+                address={currentAddress}
             />
         </div>
     );

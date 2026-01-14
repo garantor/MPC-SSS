@@ -16,11 +16,13 @@ import { combine, split } from "shamir-secret-sharing";
 import { bytesToHex, bytesToString } from "viem";
 import { useEvmClient } from "./useClient";
 import { encryptData, decryptData } from "../../encryptions";
+import { Keypair } from "@solana/web3.js";
+import { derivePath } from "ed25519-hd-key";
+import { Mnemonic } from "ethers";
 
 const prfInput = new TextEncoder().encode(
     `wallet-device-share:v1:${window.location.hostname}`
 );
-
 
 export function useSigner() {
     //Steps to create signer:
@@ -30,6 +32,40 @@ export function useSigner() {
     // 4. Generate private key and account from Mnemonic
     // 5. store local and backend the shares securely
     // 6. use secure passkey share with webauthn
+
+    async function deriveAccounts(mnemonic: string) {
+        // EVM
+        const { getClient } = useEvmClient();
+        const owner = mnemonicToAccount(mnemonic, {
+            accountIndex: 0,
+        });
+
+        const smartAccount = await toMetaMaskSmartAccount({
+            client: await getClient(),
+            implementation: Implementation.Hybrid,
+            deployParams: [owner.address, [], [], []],
+            deploySalt: "0x",
+            signer: { account: owner },
+        });
+
+        // SOLANA
+        const seedHex = Mnemonic.fromPhrase(mnemonic).computeSeed();
+        const seedNoPrefix = seedHex.startsWith('0x') ? seedHex.slice(2) : seedHex;
+        const { key } = derivePath("m/44'/501'/0'/0'", seedNoPrefix);
+        const solanaKeypair = Keypair.fromSeed(key);
+
+        return {
+            evm: {
+                address: smartAccount.address,
+                smartAccount
+            },
+            solana: {
+                address: solanaKeypair.publicKey.toBase58(),
+                keypair: solanaKeypair
+            }
+        };
+    }
+
     function base64UrlToUint8Array(base64Url: string): Uint8Array {
         let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
         while (base64.length % 4 !== 0) {
@@ -112,27 +148,15 @@ export function useSigner() {
         // Derive owner account from mnemonic
         // no user mnemonic stored anywhere except the shares
 
-        const owner = mnemonicToAccount(userMnemonic, {
-            accountIndex: 0,
-        })
+        const accounts = await deriveAccounts(userMnemonic);
 
-        // by default this will generate an evm account
-        //same mnemonic can be used to generate other types of accounts as well
+        console.log("Derived Accounts:", accounts);
 
-        console.log("Derived Owner Account from Mnemonic:", owner);
-
-        const smartAccount = await toMetaMaskSmartAccount({
-            client: await getClient(),
-            implementation: Implementation.Hybrid,
-            deployParams: [owner.address, [], [], []],
-            deploySalt: "0x",
-            signer: { account: owner },
-        });
         localStorage.setItem('webAuthnCredentialId', credential.id);
 
         // only return the share that needs to be encrypted with passkey, 
         // other shares are stored already
-        return { credential, shareToEncrypt: bytesToHex(shares[2]), smartAccount };
+        return { credential, shareToEncrypt: bytesToHex(shares[2]), smartAccount: accounts.evm.smartAccount, address: accounts.evm.address, accounts };
     }
 
     async function encryptShareWithPasskey(shareHex: string) {
@@ -258,20 +282,9 @@ export function useSigner() {
         console.log("Reconstructed Mnemonic from Shares:", recoveredMnemonic);
         console.log('--------------------------------');
 
-        const { getClient } = useEvmClient();
-        const owner = mnemonicToAccount(recoveredMnemonic, {
-            accountIndex: 0,
-        });
+        const accounts = await deriveAccounts(recoveredMnemonic);
 
-        const smartAccount = await toMetaMaskSmartAccount({
-            client: await getClient(),
-            implementation: Implementation.Hybrid,
-            deployParams: [owner.address, [], [], []],
-            deploySalt: "0x",
-            signer: { account: owner },
-        });
-
-        return { address: smartAccount.address, smartAccount };
+        return { address: accounts.evm.address, smartAccount: accounts.evm.smartAccount, accounts };
     }
 
     async function recoverWallet(cloudShareHex: string) {
@@ -345,21 +358,10 @@ export function useSigner() {
         const shareToEncrypt = bytesToHex(newShares[2]);
 
 
-        const { getClient } = useEvmClient();
-        const owner = mnemonicToAccount(recoveredMnemonic, {
-            accountIndex: 0,
-        });
-
-        const smartAccount = await toMetaMaskSmartAccount({
-            client: await getClient(),
-            implementation: Implementation.Hybrid,
-            deployParams: [owner.address, [], [], []],
-            deploySalt: "0x",
-            signer: { account: owner },
-        });
+        const accounts = await deriveAccounts(recoveredMnemonic);
 
         // Return shareToEncrypt so the UI can prompt for Encryption (Passkey Assertion)
-        return { address: smartAccount.address, smartAccount, shareToEncrypt };
+        return { address: accounts.evm.address, smartAccount: accounts.evm.smartAccount, shareToEncrypt, accounts };
     }
 
     return {
