@@ -7,13 +7,18 @@ import { TransactionModal } from '../components/TransactionModal';
 import { CHAINS, DEFAULT_CHAIN, ChainType, ChainConfig } from '../config/chains';
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 
+import * as StellarSdk from 'stellar-sdk';
+import { Client } from 'xrpl';
+
 interface DashboardProps {
     evmAddress: string;
     solanaAddress: string;
+    stellarAddress: string;
+    xrpAddress: string;
     onDisconnect: () => void;
 }
 
-export function DashboardScreen({ evmAddress, solanaAddress, onDisconnect }: DashboardProps) {
+export function DashboardScreen({ evmAddress, solanaAddress, stellarAddress, xrpAddress, onDisconnect }: DashboardProps) {
     const [selectedChain, setSelectedChain] = useState<ChainConfig>(DEFAULT_CHAIN);
     const [copied, setCopied] = useState(false);
     const [balance, setBalance] = useState<string>('0.00');
@@ -23,7 +28,14 @@ export function DashboardScreen({ evmAddress, solanaAddress, onDisconnect }: Das
     const [recoveredMnemonic, setRecoveredMnemonic] = useState<string | null>(null);
     const { retrievePasskeyShare } = useSigner();
 
-    const currentAddress = selectedChain.type === ChainType.EVM ? evmAddress : solanaAddress;
+    let currentAddress = '';
+    switch (selectedChain.type) {
+        case ChainType.EVM: currentAddress = evmAddress; break;
+        case ChainType.SOLANA: currentAddress = solanaAddress; break;
+        case ChainType.STELLAR: currentAddress = stellarAddress; break;
+        case ChainType.XRP: currentAddress = xrpAddress; break;
+        default: currentAddress = evmAddress;
+    }
 
     // EVM Hooks
     const { getBalance: getEvmBalance } = useTransactions(evmAddress as `0x${string}`);
@@ -39,12 +51,22 @@ export function DashboardScreen({ evmAddress, solanaAddress, onDisconnect }: Das
             if (selectedChain.type === ChainType.EVM) {
                 const balanceWei = await getEvmBalance();
                 setBalance(formatEther(balanceWei));
-            } else {
-                // SOLANA
+            } else if (selectedChain.type === ChainType.SOLANA) {
                 const connection = new Connection(selectedChain.rpcUrl, 'confirmed');
                 const publicKey = new PublicKey(solanaAddress);
                 const balanceLamports = await connection.getBalance(publicKey);
                 setBalance((balanceLamports / LAMPORTS_PER_SOL).toFixed(4));
+            } else if (selectedChain.type === ChainType.STELLAR) {
+                const server = new StellarSdk.Horizon.Server(selectedChain.rpcUrl);
+                const account = await server.loadAccount(stellarAddress);
+                const xlmBalance = account.balances.find((b: any) => b.asset_type === 'native');
+                setBalance(xlmBalance?.balance || '0.00');
+            } else if (selectedChain.type === ChainType.XRP) {
+                const client = new Client(selectedChain.rpcUrl);
+                await client.connect();
+                const bal = await client.getXrpBalance(xrpAddress);
+                setBalance(bal.toString());
+                await client.disconnect();
             }
         } catch (error) {
             console.error('Error fetching balance:', error);
@@ -56,7 +78,7 @@ export function DashboardScreen({ evmAddress, solanaAddress, onDisconnect }: Das
 
     useEffect(() => {
         fetchBalance();
-    }, [selectedChain, evmAddress, solanaAddress]);
+    }, [selectedChain, evmAddress, solanaAddress, stellarAddress, xrpAddress]);
 
     const copyToClipboard = () => {
         navigator.clipboard.writeText(currentAddress);

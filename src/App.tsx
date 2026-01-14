@@ -12,6 +12,12 @@ export default function App() {
   const [solanaAddress, setSolanaAddress] = useState<string | null>(() => {
     return localStorage.getItem('solanaAddress');
   });
+  const [stellarAddress, setStellarAddress] = useState<string | null>(() => {
+    return localStorage.getItem('stellarAddress');
+  });
+  const [xrpAddress, setXrpAddress] = useState<string | null>(() => {
+    return localStorage.getItem('xrpAddress');
+  });
   const [shareToEncrypt, setShareToEncrypt] = useState<string | null>(null);
   const [isEncrypted, setIsEncrypted] = useState<boolean>(() => {
     return !!localStorage.getItem('passkeyEncryptedShare');
@@ -29,11 +35,16 @@ export default function App() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  const handleLoginSuccess = (data: { evmAddress: string, solanaAddress: string }, share?: string) => {
+  const handleLoginSuccess = (data: { evmAddress: string, solanaAddress: string, stellarAddress: string, xrpAddress: string }, share?: string) => {
     setUserAddress(data.evmAddress);
     setSolanaAddress(data.solanaAddress);
+    setStellarAddress(data.stellarAddress);
+    setXrpAddress(data.xrpAddress);
+
     localStorage.setItem('userAddress', data.evmAddress);
     localStorage.setItem('solanaAddress', data.solanaAddress);
+    localStorage.setItem('stellarAddress', data.stellarAddress);
+    localStorage.setItem('xrpAddress', data.xrpAddress);
 
     console.log("User logged in with addresses:", data, share);
     if (share) {
@@ -61,10 +72,15 @@ export default function App() {
   const handleDisconnect = () => {
     setUserAddress(null);
     setSolanaAddress(null);
+    setStellarAddress(null);
+    setXrpAddress(null);
+
     setShareToEncrypt(null);
     setIsEncrypted(false);
     localStorage.removeItem('userAddress');
     localStorage.removeItem('solanaAddress');
+    localStorage.removeItem('stellarAddress');
+    localStorage.removeItem('xrpAddress');
     // localStorage.removeItem('passkeyEncryptedShare');
     // localStorage.removeItem('webAuthnCredentialId');
     localStorage.removeItem('cloudShare');
@@ -89,7 +105,13 @@ export default function App() {
       return <CloudBackupScreen onBackupComplete={handleBackupComplete} />;
     }
 
-    return <DashboardScreen evmAddress={userAddress} solanaAddress={solanaAddress || ''} onDisconnect={handleDisconnect} />;
+    return <DashboardScreen
+      evmAddress={userAddress}
+      solanaAddress={solanaAddress || ''}
+      stellarAddress={stellarAddress || ''}
+      xrpAddress={xrpAddress || ''}
+      onDisconnect={handleDisconnect}
+    />;
   };
 
   return (

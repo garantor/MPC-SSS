@@ -19,6 +19,8 @@ import { encryptData, decryptData } from "../../encryptions";
 import { Keypair } from "@solana/web3.js";
 import { derivePath } from "ed25519-hd-key";
 import { Mnemonic } from "ethers";
+import * as StellarSdk from 'stellar-sdk';
+import { Wallet } from 'xrpl';
 
 const prfInput = new TextEncoder().encode(
     `wallet-device-share:v1:${window.location.hostname}`
@@ -54,6 +56,15 @@ export function useSigner() {
         const { key } = derivePath("m/44'/501'/0'/0'", seedNoPrefix);
         const solanaKeypair = Keypair.fromSeed(key);
 
+        // STELLAR
+        // derivePath returns a Buffer/Uint8Array. Stellar allows creating keypair from raw seed.
+        // Stellar BIP44 is m/44'/148'/0'
+        const stellarResult = derivePath("m/44'/148'/0'", seedNoPrefix);
+        const stellarKeypair = StellarSdk.Keypair.fromRawEd25519Seed(stellarResult.key);
+
+        // XRP
+        const xrpWallet = Wallet.fromMnemonic(mnemonic);
+
         return {
             evm: {
                 address: smartAccount.address,
@@ -62,6 +73,14 @@ export function useSigner() {
             solana: {
                 address: solanaKeypair.publicKey.toBase58(),
                 keypair: solanaKeypair
+            },
+            stellar: {
+                address: stellarKeypair.publicKey(),
+                keypair: stellarKeypair
+            },
+            xrp: {
+                address: xrpWallet.address,
+                wallet: xrpWallet
             }
         };
     }
@@ -79,9 +98,6 @@ export function useSigner() {
         return bytes;
     }
     async function registerUser() {
-
-        const { getClient } = useEvmClient();
-
 
         const credential: any = await window.navigator.credentials.create(
             {

@@ -23,9 +23,11 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "shamir-secret-sharing": "^0.0.4",
+    "stellar-sdk": "^13.3.0",
     "stream-browserify": "^3.0.0",
     "viem": "^2.42.1",
-    "vm-browserify": "^1.1.2"
+    "vm-browserify": "^1.1.2",
+    "xrpl": "^4.5.0"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",

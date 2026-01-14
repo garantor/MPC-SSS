@@ -4,6 +4,8 @@ import { createBundlerClient } from "viem/account-abstraction";
 import { useSigner } from "./useSigner";
 import { ChainType, CHAINS } from "../config/chains";
 import { Connection, Transaction, SystemProgram, PublicKey, sendAndConfirmTransaction, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import * as StellarSdk from 'stellar-sdk';
+import { Client } from 'xrpl';
 
 const API_KEY = import.meta.env.VITE_PIMLICO_API_KEY;
 
@@ -48,7 +50,7 @@ export function useTransactions(userAddress: string, chainType: ChainType = Chai
             console.log("Transaction Receipt:", receipt);
             return receipt.receipt.transactionHash;
 
-        } else {
+        } else if (chainType === ChainType.SOLANA) {
             // SOLANA
             console.log("Sending Transaction (Solana)...");
             const connection = new Connection(CHAINS.SOLANA_DEVNET.rpcUrl, 'confirmed');
@@ -74,7 +76,55 @@ export function useTransactions(userAddress: string, chainType: ChainType = Chai
             );
             console.log("Solana Signature:", signature);
             return signature;
+
+        } else if (chainType === ChainType.STELLAR) {
+            // STELLAR
+            console.log("Sending Transaction (Stellar)...");
+            const server = new StellarSdk.Horizon.Server(CHAINS.STELLAR_TESTNET.rpcUrl);
+            const sourceKeypair = accounts.stellar.keypair;
+            const sourcePublicKey = sourceKeypair.publicKey();
+
+            const account = await server.loadAccount(sourcePublicKey);
+            const transaction = new StellarSdk.TransactionBuilder(account, { fee: StellarSdk.BASE_FEE })
+                .addOperation(StellarSdk.Operation.payment({
+                    destination: to,
+                    asset: StellarSdk.Asset.native(),
+                    amount: amount,
+                }))
+                .setTimeout(30)
+                .setNetworkPassphrase(StellarSdk.Networks.TESTNET)
+                .build();
+
+            transaction.sign(sourceKeypair);
+            const result = await server.submitTransaction(transaction);
+            console.log("Stellar Result:", result);
+            return result.hash;
+
+        } else if (chainType === ChainType.XRP) {
+            // XRP
+            console.log("Sending Transaction (XRP)...");
+            const client = new Client(CHAINS.XRP_TESTNET.rpcUrl);
+            await client.connect();
+            const wallet = accounts.xrp.wallet;
+
+            const prepared = await client.autofill({
+                "TransactionType": "Payment",
+                "Account": wallet.address,
+                "Amount": (parseFloat(amount) * 1000000).toString(), // Drops
+                "Destination": to
+            });
+
+            const signed = wallet.sign(prepared);
+            const result = await client.submitAndWait(signed.tx_blob);
+            await client.disconnect();
+
+            if (typeof result.result.meta === 'object' && result.result.meta.TransactionResult === "tesSUCCESS") {
+                return result.result.hash;
+            } else {
+                throw new Error(`XRP Transaction failed: ${JSON.stringify(result.result.meta)}`);
+            }
         }
+        return "";
     }
 
 

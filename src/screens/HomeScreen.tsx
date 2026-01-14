@@ -3,7 +3,7 @@ import { useSigner } from '../hooks/useSigner';
 import { GoogleIcon } from '../components/GoogleIcon';
 
 interface HomeScreenProps {
-    onLoginSuccess: (addresses: { evmAddress: string, solanaAddress: string }, shareToEncrypt?: any) => void;
+    onLoginSuccess: (addresses: { evmAddress: string, solanaAddress: string, stellarAddress: string, xrpAddress: string }, shareToEncrypt?: any) => void;
 }
 
 export function HomeScreen({ onLoginSuccess }: HomeScreenProps) {
@@ -54,7 +54,12 @@ export function HomeScreen({ onLoginSuccess }: HomeScreenProps) {
         try {
             const result = await retrievePasskeyShare();
             console.log('the returned result from retrievePasskeyShare in HomeScreen:', result);
-            onLoginSuccess({ evmAddress: result.address, solanaAddress: result.accounts.solana.address });
+            onLoginSuccess({
+                evmAddress: result.address,
+                solanaAddress: result.accounts.solana.address,
+                stellarAddress: result.accounts.stellar.address,
+                xrpAddress: result.accounts.xrp.address
+            });
         } catch (error) {
             console.error('Passkey Login Error:', error);
             alert('Passkey login failed. Please ensure you have a registered wallet on this device.');
@@ -70,7 +75,12 @@ export function HomeScreen({ onLoginSuccess }: HomeScreenProps) {
         try {
             const result: any = await registerUser();
             console.log('the returned result from registerUser in HomeScreen:', result);
-            onLoginSuccess({ evmAddress: result.address, solanaAddress: result.accounts.solana.address }, result.shareToEncrypt);
+            onLoginSuccess({
+                evmAddress: result.address,
+                solanaAddress: result.accounts.solana.address,
+                stellarAddress: result.accounts.stellar.address,
+                xrpAddress: result.accounts.xrp.address
+            }, result.shareToEncrypt);
         } catch (error) {
             console.error('Signup Error:', error);
             alert('Signup failed. Please try again.');
@@ -174,7 +184,12 @@ export function HomeScreen({ onLoginSuccess }: HomeScreenProps) {
             setRecoveryStatus('success');
             // Slight delay to show success state
             setTimeout(() => {
-                onLoginSuccess({ evmAddress: result.address, solanaAddress: result.accounts.solana.address }, result.shareToEncrypt);
+                onLoginSuccess({
+                    evmAddress: result.address,
+                    solanaAddress: result.accounts.solana.address,
+                    stellarAddress: result.accounts.stellar.address,
+                    xrpAddress: result.accounts.xrp.address
+                }, result.shareToEncrypt);
             }, 1000);
 
         } catch (error: any) {
